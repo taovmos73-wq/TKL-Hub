@@ -1,74 +1,28 @@
-        -- Kill Aura (Đã Sửa Lỗi Kick)
-        do
-            local Enabled
-            local AttackCooldown = false -- THÊM: Biến kiểm soát tốc độ tấn công
-            local AttackRange = 15 -- Giảm tầm tấn công để an toàn hơn
-            
-            MainSection:addToggle(
-                "Kill Aura",
-                nil,
-                function(value)
-                    Enabled = value
-                end
-            )
-            
-            -- Loại bỏ RayCast không cần thiết
-            spawnloop(
-                function()
-                    pcall(
-                        function()
-                            -- CHỈ chạy khi Enabled, không có cooldown, và không bị TempDisable
-                            if Enabled and not AttackCooldown and not TempDisable then
-                                
-                                for _, Mobs in next, MobHolder do
-                                    for Mob, _ in next, Mobs do
-                                        local RootPart = IsAlive(Mob) and Mob:FindFirstChild "HumanoidRootPart"
-                                        
-                                        if RootPart then
-                                            local UserPosition = User.Character.PrimaryPart.Position
-                                            local MobPosition = RootPart.Position
-                                            local distance = (UserPosition - MobPosition).Magnitude
-                                            
-                                            -- Kiểm tra khoảng cách đơn giản
-                                            if distance < AttackRange then
-                                                
-                                                AttackCooldown = true -- Bật Cooldown: Ngăn tấn công liên tiếp
-                                                
-                                                -- 1. Triệu hồi vũ khí/Animation
-                                                RepStor.ChangeWeld:FireServer("One-Handed Out", "RightLowerArm")
-                                                
-                                                -- 2. Gửi sự kiện gây sát thương (DamageMob)
-                                                game:GetService "ReplicatedStorage".DamageMob:FireServer(
-                                                    User.Character.Sword.Middle,
-                                                    false,
-                                                    Mob.Humanoid
-                                                )
-                                                
-                                                -- 3. Gửi sự kiện PveEnable sau một chút delay ngắn (giả lập)
-                                                task.delay(0.05, function()
-                                                    game:GetService "ReplicatedStorage".Char.PveEnable:InvokeServer(
-                                                        false,
-                                                        true,
-                                                        User.Character.Sword.Middle,
-                                                        Mob,
-                                                        2
-                                                    )
-                                                end)
-                                                
-                                                -- Reset Cooldown sau 0.4 giây: Thời gian này đủ để giả lập 2-3 đòn đánh/giây
-                                                task.delay(0.4, function() 
-                                                    AttackCooldown = false 
-                                                end)
-                                                
-                                                return -- Thoát vòng lặp sau khi tấn công mục tiêu đầu tiên
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    )
-                end,
-                0.1 -- Tăng tốc độ vòng lặp kiểm tra mục tiêu lên 0.1s
-            )
-        end
+local AdminList = {207160289, 18436454, 58736484, 18951266, 1275528885, 663289590, 46478188, 8319210, 36952262, 32873573, 43839070, 90504399, 32985263, 17637379, 682061085, 1258519, 315063621, 394422754, 34923509, 70926245, 1509327150, 265465705, 1277054439, 37784616, 125754354, 5352128, 125287135, 36104793, 414043237, 48921674, 64219597, 27513204, 196467370, 1419777109, 211117443, 3097986992} 
+local PrintUsernameOfPlayersJoining = true
+
+local function TeleportToPlace() 
+
+local TeleportService = game:GetService("TeleportService") 
+local GameID = game.PlaceId 
+local PlayerToTeleport = game.Players.LocalPlayer
+
+TeleportService:Teleport(GameID, PlayerToTeleport)
+
+end
+
+game.Players.PlayerAdded:Connect(function(PlayerAdded) 
+
+if PrintUsernameOfPlayersJoining == true then
+print(PlayerAdded.Name .. " Has Joined The Game")
+end
+
+for index, value in pairs(AdminList) do 
+
+if PlayerAdded.UserId == value then
+TeleportToPlace() 
+end
+
+end
+
+end)

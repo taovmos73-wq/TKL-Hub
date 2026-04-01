@@ -1,12 +1,12 @@
 --// SETTINGS
-local HITBOX_SIZE = Vector3.new(12,6,12)
+local RANGE = 10 -- bán kính đánh
 local DAMAGE = 25
-local TICK_RATE = 0.05
+local TICK_RATE = 0.1 -- chậm lại để không bug
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- UI
+--// UI
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 local button = Instance.new("TextButton", gui)
 
@@ -23,13 +23,13 @@ button.MouseButton1Click:Connect(function()
     button.Text = auraEnabled and "Aura: ON" or "Aura: OFF"
 end)
 
--- Aura visual
+--// AURA VISUAL
 local function createAura(char)
     local root = char:WaitForChild("HumanoidRootPart")
 
     local part = Instance.new("Part")
     part.Shape = Enum.PartType.Ball
-    part.Size = Vector3.new(12,12,12)
+    part.Size = Vector3.new(RANGE*2, RANGE*2, RANGE*2)
     part.Transparency = 0.7
     part.Anchored = false
     part.CanCollide = false
@@ -42,53 +42,57 @@ local function createAura(char)
     weld.Parent = part
 end
 
--- Effect
+--// EFFECT
 local function slashEffect(pos)
     local p = Instance.new("Part")
     p.Size = Vector3.new(1,1,1)
     p.Anchored = true
     p.CanCollide = false
     p.Position = pos
+    p.BrickColor = BrickColor.new("Bright blue")
     p.Parent = workspace
 
-    game.Debris:AddItem(p, 0.2)
+    game:GetService("Debris"):AddItem(p, 0.2)
 end
 
--- Main loop
+--// ATTACK FUNCTION (KHÔNG XUYÊN TƯỜNG)
+local function attack()
+    local char = player.Character
+    if not char then return end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model")
+        and model ~= char
+        and model:FindFirstChild("Humanoid")
+        and model:FindFirstChild("HumanoidRootPart")
+        and model:FindFirstChild("IsNPC") then
+
+            local targetRoot = model.HumanoidRootPart
+            local dist = (root.Position - targetRoot.Position).Magnitude
+
+            if dist <= RANGE then
+                model.Humanoid:TakeDamage(DAMAGE)
+                slashEffect(targetRoot.Position)
+            end
+        end
+    end
+end
+
+--// MAIN LOOP
 task.spawn(function()
     while true do
         task.wait(TICK_RATE)
 
-        if not auraEnabled then continue end
-
-        local char = player.Character
-        if not char then continue end
-
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then continue end
-
-        local region = Region3.new(
-            root.Position - (HITBOX_SIZE/2),
-            root.Position + (HITBOX_SIZE/2)
-        )
-
-        local parts = workspace:FindPartsInRegion3(region, char, math.huge)
-
-        for _, part in pairs(parts) do
-            local model = part:FindFirstAncestorOfClass("Model")
-
-            if model
-            and model ~= char
-            and model:FindFirstChild("Humanoid")
-            and model:FindFirstChild("IsNPC") then
-
-                model.Humanoid:TakeDamage(DAMAGE)
-                slashEffect(model.HumanoidRootPart.Position)
-            end
+        if auraEnabled then
+            attack()
         end
     end
 end)
 
+--// LOAD AURA
 if player.Character then
     createAura(player.Character)
 end

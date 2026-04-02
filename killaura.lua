@@ -1,28 +1,28 @@
---// SETTINGS
-local BASE_DELAY = 0.12
-local RANDOM_DELAY = 0.05
+local remote = game.ReplicatedStorage:WaitForChild("AttackEvent")
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local RANGE = 15
+local BASE_DELAY = 0.1
+local RANDOM_DELAY = 0.03
 
---// UI
+local player = game.Players.LocalPlayer
+
+-- UI
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-local button = Instance.new("TextButton", gui)
+local btn = Instance.new("TextButton", gui)
 
-button.Size = UDim2.new(0,140,0,45)
-button.Position = UDim2.new(0,20,0,200)
-button.Text = "AUTO ATTACK: OFF"
-button.Active = true
-button.Draggable = true
+btn.Size = UDim2.new(0,150,0,45)
+btn.Position = UDim2.new(0,20,0,200)
+btn.Text = "AUTO FARM: OFF"
+btn.Draggable = true
 
 local enabled = false
 
-button.MouseButton1Click:Connect(function()
+btn.MouseButton1Click:Connect(function()
     enabled = not enabled
-    button.Text = enabled and "AUTO ATTACK: ON" or "AUTO ATTACK: OFF"
+    btn.Text = enabled and "AUTO FARM: ON" or "AUTO FARM: OFF"
 end)
 
---// AUTO SPAM ATTACK (ĐÁNH ALL)
+-- Auto attack
 task.spawn(function()
     while true do
         task.wait(BASE_DELAY + math.random() * RANDOM_DELAY)
@@ -32,10 +32,20 @@ task.spawn(function()
         local char = player.Character
         if not char then continue end
 
-        local tool = char:FindFirstChildOfClass("Tool")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then continue end
 
-        if tool then
-            tool:Activate()
+        for _, npc in pairs(workspace:GetChildren()) do
+            if npc:FindFirstChild("Humanoid")
+            and npc:FindFirstChild("HumanoidRootPart")
+            and npc:FindFirstChild("IsNPC") then
+
+                local dist = (root.Position - npc.HumanoidRootPart.Position).Magnitude
+
+                if dist <= RANGE then
+                    remote:FireServer(npc)
+                end
+            end
         end
     end
 end)

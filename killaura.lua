@@ -1,54 +1,74 @@
 --// SETTINGS
-local RANGE = 10
-local TICK_RATE = 0.1
+local RANGE = 15
+local BASE_DELAY = 0.12
+local RANDOM_DELAY = 0.05
 
 local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
-
 local player = Players.LocalPlayer
-local auraEnabled = true
 
---// AUTO CLICK (GAME TỰ TÍNH DAMAGE)
-task.spawn(function()
-    while true do
-        task.wait(TICK_RATE)
+--// UI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "ProAura"
 
-        if not auraEnabled then continue end
+local button = Instance.new("TextButton", gui)
+button.Size = UDim2.new(0,140,0,45)
+button.Position = UDim2.new(0,20,0,200)
+button.Text = "AUTO FARM: OFF"
+button.Active = true
+button.Draggable = true
 
-        -- giả lập click chuột
-        VirtualUser:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-        VirtualUser:Button1Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    end
+local enabled = false
+
+button.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    button.Text = enabled and "AUTO FARM: ON" or "AUTO FARM: OFF"
 end)
 
---// OPTIONAL: CHỈ ĐÁNH KHI GẦN NPC
+--// FIND NEAREST NPC
+local function getNearestNPC()
+    local char = player.Character
+    if not char then return nil end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    local closest = nil
+    local shortest = RANGE
+
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model")
+        and model ~= char
+        and model:FindFirstChild("Humanoid")
+        and model:FindFirstChild("HumanoidRootPart")
+        and model:FindFirstChild("IsNPC") then
+
+            local dist = (root.Position - model.HumanoidRootPart.Position).Magnitude
+
+            if dist < shortest then
+                shortest = dist
+                closest = model
+            end
+        end
+    end
+
+    return closest
+end
+
+--// AUTO ATTACK
 task.spawn(function()
     while true do
-        task.wait(0.1)
+        task.wait(BASE_DELAY + math.random() * RANDOM_DELAY)
+
+        if not enabled then continue end
 
         local char = player.Character
         if not char then continue end
 
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then continue end
+        local tool = char:FindFirstChildOfClass("Tool")
+        local target = getNearestNPC()
 
-        local nearNPC = false
-
-        for _, model in pairs(workspace:GetChildren()) do
-            if model:IsA("Model")
-            and model ~= char
-            and model:FindFirstChild("HumanoidRootPart")
-            and model:FindFirstChild("IsNPC") then
-
-                local dist = (root.Position - model.HumanoidRootPart.Position).Magnitude
-
-                if dist <= RANGE then
-                    nearNPC = true
-                    break
-                end
-            end
+        if tool and target then
+            tool:Activate()
         end
-
-        auraEnabled = nearNPC
     end
 end)
